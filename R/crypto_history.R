@@ -13,6 +13,8 @@
 #' @param limit integer Return the top n records, default is all tokens
 #' @param start_date string Start date to retrieve data from, format 'yyyymmdd'
 #' @param end_date string End date to retrieve data from, format 'yyyymmdd', if not provided, today will be assumed
+#' @param interval string Interval with which to sample data, default 'daily'. Must be one of `"hourly" "daily" "weekly"
+#' "monthly" "yearly" "1d" "2d" "3d" "7d" "14d" "15d" "30d" "60d" "90d" "365d"`
 #' @param sleep integer Seconds to sleep for between API requests
 #' @param finalWait to avoid calling the web-api again with another command before 60s are over (TRUE=default)
 #
@@ -62,7 +64,7 @@
 #'               dplyr::filter(first_historical_data<="2015-12-31",
 #'               last_historical_data>="2015-01-01")
 #' coins_2015 <- crypto_history(coin_list = coin_list_2015,
-#' start_date = "20150101", end_date="20151231", limit=20)
+#' start_date = "20150101", end_date="20151231", limit=20, interval="90d")
 #'
 #' }
 #'
@@ -70,7 +72,7 @@
 #'
 #' @export
 #'
-crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_date = NULL, end_date = NULL, sleep = NULL, finalWait = TRUE) {
+crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_date = NULL, end_date = NULL, interval = NULL, sleep = NULL, finalWait = TRUE) {
   # only if no coins are provided use crypto_list() to provide all actively traded coins
   if (is.null(coin_list)) coin_list <- crypto_list()
   # limit amount of coins downloaded
@@ -80,14 +82,30 @@ crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_
   UNIXstart <- format(as.numeric(as.POSIXct(start_date, format="%Y%m%d")),scientific = FALSE)
   if (is.null(end_date)) { end_date <- gsub("-", "", lubridate::today()) }
   UNIXend <- format(as.numeric(as.POSIXct(end_date, format="%Y%m%d", tz = "UTC")),scientific = FALSE)
+  if (is.null(interval)) {
+    interval <- 'daily'
+  } else if (
+    !(interval %in% c(#"hourly",
+                      "daily", "weekly", "monthly", "yearly",
+                      #"1h", "2h", "3h", "4h", "6h", "12h",
+                      "1d", "2d",
+                      "3d", "7d", "14d", "15d", "30d", "60d", "90d", "365d"))){
+    warning('interval was not valid, using "daily". see documentation for allowed values.')
+    interval <- 'daily'
+  }
   # extract slugs & ids
   slugs <- coin_list %>% distinct(slug)
   ids <- coin_list %>% distinct(id)
-  # Create slug_vec with number of elemnts determined by max length of retrieved datapoints (10000)
+  # Create slug_vec with number of elements determined by max length of retrieved datapoints (10000)
   dl <- length(seq(as.Date(start_date, format="%Y%m%d"),as.Date(end_date, format="%Y%m%d"),"day"))
-  n <- ceiling(nrow(ids)/floor(10000/dl))
+  # reduce this number by interval
+  if(interval=="2d"){dl<-dl/2}else if(interval=="3d"){dl<-dl/3}else if(interval=="7d"|interval=="weekly"){dl<-dl/7} else
+    if(interval=="14d"){dl<-dl/14}else if(interval=="15d"){dl<-dl/15}else if(interval=="30d"|interval=="monthly"){dl<-dl/30} else
+    if(interval=="60d"){dl<-dl/60}else if(interval=="90d"){dl<-dl/90}else if(interval=="365d"|interval=="yearly"){dl<-dl/365}
+  # determine number of splits based on either max 10000 datapoints or max-length of url
+  n <- max(ceiling(nrow(ids)/floor(10000/dl)),ceiling(nrow(ids)/(2000-142)*6))
   id_vec <- plyr::laply(split(ids$id, sort(seq_len(nrow(ids))%%n)),function(x) paste0(x,collapse=","))
-  # define scraper_funtion
+  # define scraper_function
   scrape_web <- function(historyurl){
     page <- jsonlite::fromJSON(historyurl)
     pb$tick()
@@ -102,6 +120,8 @@ crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_
     UNIXend,
     "&time_start=",
     UNIXstart,
+    "&interval=",
+    interval,
     "&id=",
    id
   ))
@@ -116,7 +136,7 @@ crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_
                          total = nrow(id_vec), clear = FALSE)
   message(cli::cat_bullet("Scraping historical crypto data", bullet = "pointer",bullet_col = "green"))
   data <- id_vec %>% dplyr::mutate(out = purrr::map(historyurl,.f=~insistent_scrape(.x)))
-  if (limit==1) {data2 <- data$out} else {data2 <- data$out %>% unlist(.,recursive=FALSE)}
+  if (nrow(coin_list)==1) {data2 <- data$out} else {data2 <- data$out %>% unlist(.,recursive=FALSE)}
   # 2. Here comes the second part: Clean and create dataset
   map_scrape <- function(lout){
     pb2$tick()
