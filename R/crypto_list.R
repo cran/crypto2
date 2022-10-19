@@ -30,7 +30,6 @@
 #' coin_list_2015 <- active_list %>%
 #' dplyr::filter(first_historical_data<="2015-12-31",
 #'               last_historical_data>="2015-01-01")
-#'
 #' }
 #'
 #' @name crypto_list
@@ -41,30 +40,30 @@ crypto_list <- function(only_active=TRUE, add_untracked=FALSE) {
   # get current coins
   active_url <- paste0("https://web-api.coinmarketcap.com/v1/cryptocurrency/map")
   active_coins <- jsonlite::fromJSON(active_url)
-  coins <- active_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(7:8,as.Date))
+  coins <- active_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date))
 
   if (!only_active){
     inactive_url <- paste0("https://web-api.coinmarketcap.com/v1/cryptocurrency/map?listing_status=inactive")
     inactive_coins <- jsonlite::fromJSON(inactive_url)
     coins <- dplyr::bind_rows(coins,
-                       inactive_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(7:8,as.Date))) %>% dplyr::arrange(id)
+                       inactive_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date))) %>% dplyr::arrange(id)
   }
   if (add_untracked){
     untracked_url <- paste0("https://web-api.coinmarketcap.com/v1/cryptocurrency/map?listing_status=untracked")
     untracked_coins <- jsonlite::fromJSON(untracked_url)
     coins <- dplyr::bind_rows(coins,
-                        untracked_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(7:8,as.Date),is_active=-1)) %>% dplyr::arrange(id)
+                        untracked_coins$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date),is_active=-1)) %>% dplyr::arrange(id)
   }
   return(coins %>% dplyr::select(id:last_historical_data) %>% dplyr::distinct() %>% dplyr::arrange(id))
 }
 #' Retrieves name, CMC id, symbol, slug, rank, an activity flag as well as activity dates on CMC for all coins
 #'
-#' This code uses the web api. It retrieves data for all historic and all active coins and does not require an 'API' key.
+#' This code uses the web api. It retrieves data for all historic and all active exchanges and does not require an 'API' key.
 #'
-#' @param only_active Shall the code only retrieve active coins (TRUE=default) or include inactive coins (FALSE)
-#' @param add_untracked Shall the code additionally retrieve untracked coins (FALSE=default)
+#' @param only_active Shall the code only retrieve active exchanges (TRUE=default) or include inactive coins (FALSE)
+#' @param add_untracked Shall the code additionally retrieve untracked exchanges (FALSE=default)
 #'
-#' @return List of (active and historically existing) cryptocurrencies in a tibble:
+#' @return List of (active and historically existing) exchanges in a tibble:
 #'   \item{id}{CMC exchange id (unique identifier)}
 #'   \item{name}{Exchange name}
 #'   \item{slug}{Exchange URL slug (unique)}
@@ -78,11 +77,10 @@ crypto_list <- function(only_active=TRUE, add_untracked=FALSE) {
 #'
 #' @examples
 #' \dontrun{
-#' # return all coins
+#' # return all exchanges
 #' ex_active_list <- exchange_list(only_active=TRUE)
 #' ex_all_but_untracked_list <- exchange_list(only_active=FALSE)
 #' ex_full_list <- exchange_list(only_active=FALSE,add_untracked=TRUE)
-#'
 #' }
 #'
 #' @name exchange_list
@@ -93,19 +91,19 @@ exchange_list <- function(only_active=TRUE, add_untracked=FALSE) {
   # get current coins
   active_url <- paste0("https://web-api.coinmarketcap.com/v1/exchange/map")
   active_exchanges <- jsonlite::fromJSON(active_url)
-  exchanges <- active_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(5:6,as.Date))
+  exchanges <- active_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date))
 
   if (!only_active){
     inactive_url <- paste0("https://web-api.coinmarketcap.com/v1/exchange/map?listing_status=inactive")
     inactive_exchanges <- jsonlite::fromJSON(inactive_url)
     exchanges <- dplyr::bind_rows(exchanges,
-                              inactive_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(5:6,as.Date))) %>% dplyr::arrange(id)
+                              inactive_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date))) %>% dplyr::arrange(id)
   }
   if (add_untracked){
     untracked_url <- paste0("https://web-api.coinmarketcap.com/v1/exchange/map?listing_status=untracked")
     untracked_exchanges <- jsonlite::fromJSON(untracked_url)
     exchanges <- dplyr::bind_rows(exchanges,
-                              untracked_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(5:6,as.Date),is_active=-1)) %>% dplyr::arrange(id)
+                              untracked_exchanges$data %>% tibble::as_tibble() %>% dplyr::mutate(dplyr::across(c(first_historical_data,last_historical_data),as.Date),is_active=-1)) %>% dplyr::arrange(id)
   }
   return(exchanges %>% dplyr::select(id:last_historical_data) %>% dplyr::distinct() %>% dplyr::arrange(id))
 }

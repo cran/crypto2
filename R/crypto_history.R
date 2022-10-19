@@ -7,7 +7,7 @@
 #' to predict future market movements or trends.
 #'
 #' @param coin_list string if NULL retrieve all currently existing coins (`crypto_list()`),
-#' or provide list of crypto currencies in the `crypto_list()` format (e.g. current and/or dead coins since 2015)
+#' or provide list of crypto currencies in the `crypto_list()` or `cryptoi_listings()` format (e.g. current and/or dead coins since 2015)
 #' @param convert (default: USD) to one or more of available fiat or precious metals prices (`fiat_list()`). If more
 #' than one are selected please separate by comma (e.g. "USD,BTC")
 #' @param limit integer Return the top n records, default is all tokens
@@ -74,7 +74,7 @@
 #'
 #' @export
 #'
-crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_date = NULL, end_date = NULL, interval = NULL, sleep = 60, finalWait = TRUE) {
+crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_date = NULL, end_date = NULL, interval = NULL, sleep = 0, finalWait = FALSE) {
   # only if no coins are provided use crypto_list() to provide all actively traded coins
   if (is.null(coin_list)) coin_list <- crypto_list()
   # limit amount of coins downloaded
@@ -84,6 +84,10 @@ crypto_history <- function(coin_list = NULL, convert="USD", limit = NULL, start_
   UNIXstart <- format(as.numeric(as.POSIXct(start_date, format="%Y%m%d")),scientific = FALSE)
   if (is.null(end_date)) { end_date <- gsub("-", "", lubridate::today()) }
   UNIXend <- format(as.numeric(as.POSIXct(end_date, format="%Y%m%d", tz = "UTC")),scientific = FALSE)
+  # check dates
+  if (as.numeric(end_date)<20130429) stop("Attention: CMC Data is only available after 2013-04-29!")
+  if (as.numeric(start_date)<20130429) warning("CMC Data (that will be downloaded) starts after 2013-04-29!")
+  # intervals
   if (is.null(interval)) {
     interval <- 'daily'
   } else if (
