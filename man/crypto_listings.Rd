@@ -12,7 +12,10 @@ crypto_listings(
   end_date = NULL,
   interval = "day",
   quote = FALSE,
+  sort = "market_cap",
+  sort_dir = "desc",
   sleep = 0,
+  wait = 60,
   finalWait = FALSE
 )
 }
@@ -32,7 +35,16 @@ than one are selected please separate by comma (e.g. "USD,BTC"), only necessary 
 
 \item{quote}{logical set to TRUE if you want to include price data (FALSE=default)}
 
+\item{sort}{string use to sort results, possible values: "name", "symbol", "market_cap", "price",
+"circulating_supply", "total_supply", "max_supply", "num_market_pairs", "volume_24h",
+"volume_7d", "volume_30d", "percent_change_1h", "percent_change_24h",
+"percent_change_7d". Especially useful if you only want to download the top x entries using "limit" (deprecated for "new")}
+
+\item{sort_dir}{string used to specify the direction of the sort in "sort". Possible values are "asc" (DEFAULT) and "desc"}
+
 \item{sleep}{integer (default 60) Seconds to sleep between API requests}
+
+\item{wait}{waiting time before retry in case of fail (needs to be larger than 60s in case the server blocks too many attempts, default=60)}
 
 \item{finalWait}{to avoid calling the web-api again with another command before 60s are over (TRUE=default)}
 }
@@ -83,6 +95,11 @@ start_date = "20140101", end_date="20140107", interval="day")
 # report in two different currencies
 listings_2014w1_USDBTC <- crypto_listings(which="historical", quote=TRUE,
 start_date = "20140101", end_date="20140107", interval="day", convert="USD,BTC")
+
+# only download the top 10 crypto currencies based on their market capitalization
+listings_2015w1_mcsort <- crypto_listings(which="historical", quote=TRUE,
+start_date = "20150101", end_date="20150107", interval="day", sort="market_cap",
+sort_dir="desc", limit=10)
 }
 
 }
