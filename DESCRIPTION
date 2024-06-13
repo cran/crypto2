@@ -1,7 +1,7 @@
 Package: crypto2
 Title: Download Crypto Currency Data from 'CoinMarketCap' without 'API'
-Version: 1.4.6
-Date: 2024-01-29
+Version: 2.0.0
+Date: 2024-06-12
 Authors@R: c(person("Sebastian", "Stoeckl", email = "sebastian.stoeckl@uni.li", role = c("aut","cre"), comment = c(ORCID = "0000-0002-4196-6093", "Package commissioner and maintainer.")),person("Jesse", "Vent", email = "cryptopackage@icloud.com", role = c("ctb"), comment = c("Creator of the crypto package that provided the idea and basis for this package.")))
 Maintainer: Sebastian Stoeckl <sebastian.stoeckl@uni.li>
 URL: https://github.com/sstoeckl/crypto2,
@@ -10,16 +10,17 @@ Description: Retrieves crypto currency information and historical prices as well
 License: MIT + file LICENSE
 Depends: R (>= 4.0.0)
 Imports: dplyr, tibble, tidyr, purrr, progress, stats, lubridate,
-        jsonlite, cli, plyr
+        jsonlite, cli, plyr, base64enc, janitor
 Encoding: UTF-8
-RoxygenNote: 7.2.3
-Suggests: spelling
+RoxygenNote: 7.3.1
+Suggests: spelling, testthat (>= 3.0.0), digest
 Language: en-US
+Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2024-01-29 23:32:26 UTC; Sebastian Stöckl
+Packaged: 2024-06-13 09:21:47 UTC; Sebastian Stöckl
 Author: Sebastian Stoeckl [aut, cre] (<https://orcid.org/0000-0002-4196-6093>,
     Package commissioner and maintainer.),
   Jesse Vent [ctb] (Creator of the crypto package that provided the idea
     and basis for this package.)
 Repository: CRAN
-Date/Publication: 2024-01-29 23:50:11 UTC
+Date/Publication: 2024-06-13 14:30:06 UTC

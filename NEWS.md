@@ -1,5 +1,18 @@
 # crypto2 (development version)
 
+# crypto 2.0.0
+
+After a major change in the api structure of coinmarketcap.com, the package had to be rewritten. As a result, many functions had to be rewritten, because data was not available any more in a similar format or with similar accuracy. Unfortunately, this will potentially break many users implementations. Here is a detailed list of changes:
+
+- `crypto_list()` has been modified and delivers the same data as before.
+- `exchange_list()` has been modified and delivers the same data as before.
+- `fiat_list()` has been modified and no longer delivers all available currencies and precious metals (therefore only USD and Bitcoin are available any more).
+- `crypto_listings()` needed to be modified, as multiple base currencies are not available any more. Also some of the fields downloaded from CMC might have changed. It still retrieves the latest listings, the new listings as well as historical listings. The fields returned have somewhat slightly changed. Also, no sorting is available any more, so if you want to download the top x CCs by market cap, you have to download all CCs and then sort them in R.
+- `crypto_info()` has been modified, as the data structure has changed. The fields returned have somewhat slightly changed.
+- `crypto_history()` has been modified. It still retrieves all the OHLC history of all the coins, but is slower due to an increased number of necessary api calls. The number of available intervals is strongly limited, but hourly and daily data is still available. Currently only USD and BTC are available as quote currencies through this library.
+- `crypto_global_quotes()` has been modified. It still produces a clear picture of the global market, but the data structure has somewhat slightly changed.
+
+
 # crypto 1.4.6 
 
 Added new options "sort" and "sort_dir" for `crypto_listings()` to allow for the sorting of results, which in combination with "limit" allows, for example, to only download the top 100 CCs according to market capitalization that were listed at a certain date. Correct missing last_historical_data date conversion due to the now missing field.
@@ -10,7 +23,7 @@ Added a new function `crypto_global_quotes()` which retrieves global aggregate m
 
 # crypto 1.4.4 
 
-A new function `crypto_listings()` is introduced to retrieve new/latest/historical listings and listing information at CMC. Thje option `finalWait = TRUE` does not seem to be necessary any more, also `sleep` can be set to '0' seconds.
+A new function `crypto_listings()` is introduced to retrieve new/latest/historical listings and listing information at CMC. The option `finalWait = TRUE` does not seem to be necessary any more, also `sleep` can be set to '0' seconds.
 
 # crypto 1.4.3 
 
