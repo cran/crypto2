@@ -1,10 +1,10 @@
-b158578ac0ea40e1e55961bd142cb7bb *DESCRIPTION
+a5ee2c227b29245c198effbc9246c233 *DESCRIPTION
 d14fd408b00791fe8deccace666bba97 *LICENSE
 15d38730e8269afe4de512717a059f26 *NAMESPACE
-775a504745ae2a9a58cfe5b6d5e0ba8d *NEWS.md
+f6c29b350e2ee19d4a2ee9400a701318 *NEWS.md
 b700b7523bf75ff80690651b967ee49c *R/crypto_global_quotes.R
 671664c54c47c3e85a2b76751939b3e8 *R/crypto_history.R
-66dd1e1d00fceb4e5ce8733fb1618061 *R/crypto_info.R
+882b81cf95f74a0f012538c57a6db4d8 *R/crypto_info.R
 43d16201e7e4a16a80c541a226518c5e *R/crypto_list.R
 eae3f3c32456579850c6e39c7723d6e5 *R/crypto_listings.R
 c8d61a668de1738322b42dbd4291fea9 *R/extras.R
@@ -25,9 +25,9 @@ f3b5776bd7632f005a52366dfd0a32e1 *man/fiat_list.Rd
 332173f20d20942c02019350ea4dcadc *tests/spelling.R
 6ebdc32693aaa0c11da0743c3fd3b15f *tests/testthat.R
 24840c37430842a5dc74bc6dbf52f196 *tests/testthat/test-api.R
-5b81bbf2fe5eedd75160ab6f862fd461 *tests/testthat/test-crypto-info.R
-830082973cda979f4de2a11694eac976 *tests/testthat/test-global-quotes.R
-8f64bf1b7a73239ee919c786c79bc196 *tests/testthat/test-history.R
+500407ffdc2eda6754ec4952084e4186 *tests/testthat/test-crypto-info.R
+e64b0c1f977af6e263ac2ec95b3f6f0e *tests/testthat/test-global-quotes.R
+bd7aca2c2ec4f3e573def1d38ff56270 *tests/testthat/test-history.R
 f6471eaf0445e19232e526410fd975e9 *tests/testthat/test-listings.R
 bddd78bfd9554936ec497c97c1d9f472 *tests/testthat/test-lists.R
 7062363288a239b5c60c48004a37ca8b *tests/testthat/test_data/4fb1f9d0e9f6acf897a94e7c9e0335b9.json
