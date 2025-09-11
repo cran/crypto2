@@ -1,0 +1,17 @@
+citHeader("To cite {crypto2} in publications, please use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "crypto2: Download Crypto Currency Data from 'CoinMarketCap' without 'API'",
+  author  = person(
+    given = "Sebastian", family = "Stöckl",
+    role = c("aut", "cre"),
+    email = "sebastian.stoeckl@uni.li",
+    comment = c(ORCID = "0000-0002-4196-6093")
+  ),
+  year    = "2025",
+  note    = "R package version 2.0.5",
+  url     = "https://CRAN.R-project.org/package=crypto2"
+)
+
+citFooter("Please cite the package version you used.")
