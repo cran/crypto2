@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>CoinGecko integration: a second source for crypto2</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">CoinGecko integration: a second source for
+crypto2</h1>
+
+
+
+<div id="why-a-second-source" class="section level1">
+<h1>Why a second source?</h1>
+<p><code>crypto2</code> was built around CoinMarketCap (CMC). The
+<code>cg_*</code> functions are a second, independent source that
+returns tibbles with the <strong>same column conventions</strong> as the
+CMC functions, so research code that already consumes a
+<code>crypto_*</code> tibble works on a <code>cg_*</code> tibble
+too.</p>
+<p>Three concrete reasons to bother with a second source:</p>
+<ul>
+<li><strong>Triangulation.</strong> If a factor signal disagrees between
+CMC and CG, treat the disagreement as informative on its own. Most
+schema / data-quality regressions show up first as a cross-source delta.
+The vignette <code>cg-vs-cmc</code> shows the dedicated reconciliation
+workflow.</li>
+<li><strong>Independence.</strong> CMC and CG are owned and operated
+separately, so policy changes on one side do not affect the other.</li>
+<li><strong>Universe completeness.</strong> CG exposes a separate (and
+partially non-overlapping) set of delisted coins to CMC, so combining
+the two universes captures more of the historic cross-section than
+either one alone.</li>
+</ul>
+<p>This vignette focuses on <strong>how</strong> to actually pull a
+complete history out of CG for asset-pricing research.</p>
+</div>
+<div id="build-a-survivorship-bias-free-price-history-free-no-key" class="section level1">
+<h1>Build a survivorship-bias-free price history (free, no key)</h1>
+<p>The end-to-end recipe is three lines of code. It produces a daily
+panel of <code>(slug, date, close, volume, market_cap)</code> for every
+coin CoinGecko has ever tracked – active <em>and</em> delisted – back to
+each coin’s listing date.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(crypto2)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># 1. Full historic universe: active + delisted, via cg_id_mapping()</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>universe <span class="ot">&lt;-</span> <span class="fu">cg_list</span>(<span class="at">only_active =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># 2. Daily close / volume / market cap in USD, full lifetime per coin</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#    (one CSV download per coin). Skip OHLC here -- it adds a 2nd HTTP</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#    call per coin and only covers the last 30 days (see &quot;What is NOT in</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#    the free tier&quot; below).</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="fu">options</span>(<span class="at">crypto2.cg_what =</span> <span class="fu">c</span>(<span class="st">&quot;price&quot;</span>, <span class="st">&quot;market_cap&quot;</span>))</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>hist <span class="ot">&lt;-</span> <span class="fu">cg_history</span>(universe)</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co"># 3. Persist</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(hist, <span class="st">&quot;data/cg_history.parquet&quot;</span>)</span></code></pre></div>
+<p><strong>Output shape (<code>hist</code>)</strong>: columns match
+<code>crypto_history()</code> exactly –
+<code>id, slug, name, symbol, timestamp, ref_cur_id, ref_cur_name, open, high, low, close, volume, market_cap, time_open, ...</code>.
+Under the default <code>date_convention = &quot;end_of_day&quot;</code>, dates are
+labelled with CMC’s convention so <code>close[X] / close[X-1] - 1</code>
+is the return earned during date X (see
+<code>vignette(&quot;cg-vs-cmc&quot;)</code> for the date-convention story).</p>
+<div id="preconditions" class="section level2">
+<h2>Preconditions</h2>
+<ul>
+<li><strong>Run from a workstation / local machine.</strong> CoinGecko
+serves the full historic backfill freely, but its bot filtering refuses
+requests from some cloud / VPS environments. If
+<code>cg_history()</code> prints the one-time message <em>“CoinGecko
+refused the request from this environment”</em>, the recipe above will
+not complete on your host. Workarounds:
+<ol style="list-style-type: lower-alpha">
+<li>run the bootstrap on a laptop, ship the parquet to the server;</li>
+<li>use the one-shot Pro recipes in
+<code>vignette(&quot;coingecko-pro-backfill&quot;)</code>.</li>
+</ol></li>
+<li><strong>The historic mapping must be reachable.</strong>
+<code>cg_list(only_active = FALSE)</code> calls
+<code>cg_id_mapping()</code> to download the slug / numeric-id / symbol
+/ name archive of delisted coins. The mapping is cached after the first
+call; if the download itself is blocked, only the bundled fallback (~20
+reference coins) is used and you will see a yellow <em>“using bundled
+sample”</em> message.</li>
+</ul>
+</div>
+<div id="what-you-get-back" class="section level2">
+<h2>What you get back</h2>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Coverage on free tier</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>close</code></td>
+<td>full lifetime of each coin (daily)</td>
+</tr>
+<tr class="even">
+<td><code>volume</code></td>
+<td>full lifetime of each coin (daily)</td>
+</tr>
+<tr class="odd">
+<td><code>market_cap</code></td>
+<td>full lifetime of each coin (daily)</td>
+</tr>
+<tr class="even">
+<td><code>open</code>, <code>high</code>, <code>low</code></td>
+<td><strong>only the most recent 30 days</strong>; older rows have
+<code>NA</code> here</td>
+</tr>
+</tbody>
+</table>
+<p>Full history is available in any quote currency
+(<code>convert = &quot;BTC&quot;</code>, <code>&quot;EUR&quot;</code>, …). All of it comes
+from CoinGecko’s website, without an API key.</p>
+<p>For complete OHLC over the full history (microstructure work,
+candlestick-based signals, intraday volatility models), see the Pro
+recipes in <code>vignette(&quot;coingecko-pro-backfill&quot;)</code>.</p>
+</div>
+</div>
+<div id="function-reference" class="section level1">
+<h1>Function reference</h1>
+<p>All four exported <code>cg_*</code> functions accept the same
+arguments as their <code>crypto_*</code> counterparts. Arguments without
+a CG equivalent (e.g. <code>add_untracked</code>,
+<code>requestLimit</code>, <code>single_id</code>) are kept for parity
+and silently ignored. Arguments where CG is more restrictive (e.g.
+<code>which = &quot;historical&quot;</code> in <code>cg_listings()</code>) emit a
+one-line warning and coerce to the supported mode.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Purpose</th>
+<th>CMC</th>
+<th>CoinGecko</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Coin universe</td>
+<td><code>crypto_list()</code></td>
+<td><code>cg_list()</code></td>
+</tr>
+<tr class="even">
+<td>Current snapshot</td>
+<td><code>crypto_listings()</code></td>
+<td><code>cg_listings()</code></td>
+</tr>
+<tr class="odd">
+<td>Daily history</td>
+<td><code>crypto_history()</code></td>
+<td><code>cg_history()</code></td>
+</tr>
+<tr class="even">
+<td>Per-coin metadata</td>
+<td><code>crypto_info()</code></td>
+<td><code>cg_info()</code></td>
+</tr>
+</tbody>
+</table>
+<div id="cg_list-the-universe" class="section level2">
+<h2><code>cg_list()</code> – the universe</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>universe       <span class="ot">&lt;-</span> <span class="fu">cg_list</span>()                       <span class="co"># active coins only</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>universe_full  <span class="ot">&lt;-</span> <span class="fu">cg_list</span>(<span class="at">only_active =</span> <span class="cn">FALSE</span>)    <span class="co"># + historic mapping</span></span></code></pre></div>
+<p><code>only_active = FALSE</code> is the survivorship-bias-corrected
+universe: the output is <code>cg_list()</code>’s active rows plus the
+historic-only rows from <code>cg_id_mapping()</code>. A single one-line
+message reports the mapping’s harvest date: <em>“Historic data retrieval
+is current until YYYY-MM-DD”</em>.</p>
+</div>
+<div id="cg_listings-current-cross-section" class="section level2">
+<h2><code>cg_listings()</code> – current cross-section</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>snap <span class="ot">&lt;-</span> <span class="fu">cg_listings</span>(<span class="at">limit =</span> <span class="dv">1000</span>)   <span class="co"># prices included by default</span></span></code></pre></div>
+<p>The snapshot carries every <code>/coins/markets</code> field: price,
+24h volume and range, price and market-cap changes, all-time high/low
+and ROI (see <code>?cg_listings</code> for the column mapping). Two
+caveats:</p>
+<ul>
+<li><code>/coins/markets</code> no longer lists wrapped, staked or
+bridged tokens (stETH, wstETH, WBTC, JitoSOL, bridged USDT, …). Their
+history is only available through <code>cg_history()</code>.</li>
+<li>The public endpoint allows only a few calls per minute, and a full
+snapshot needs about 70 pages. Failed pages are retried with backoff; if
+a page still fails, <code>cg_listings()</code> warns with the page
+number instead of returning a silently truncated snapshot.</li>
+</ul>
+<p><code>which = &quot;historical&quot;</code> and <code>which = &quot;new&quot;</code> warn
+and coerce to <code>&quot;latest&quot;</code> – CG’s free tier does not expose the
+historical cross-section in a single call. To build your own
+cross-section history on the free tier, snapshot
+<code>cg_listings()</code> periodically (cron) and accumulate the
+parquet output:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_dataset</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="fu">cg_listings</span>(),</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">path        =</span> <span class="st">&quot;data/cg_listings&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">partitioning =</span> <span class="st">&quot;harvested_at&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="cg_history-the-workhorse" class="section level2">
+<h2><code>cg_history()</code> – the workhorse</h2>
+<p>Covered in the recipe at the top of this vignette. Key knobs:</p>
+<ul>
+<li><code>start_date</code> / <code>end_date</code> – date window
+(client-side filter).</li>
+<li><code>options(crypto2.cg_what = ...)</code> – restrict to
+<code>c(&quot;price&quot;, &quot;market_cap&quot;)</code> to skip OHLC and save one HTTP
+call per coin.</li>
+<li><code>date_convention = c(&quot;end_of_day&quot;, &quot;raw&quot;)</code> – default
+<code>&quot;end_of_day&quot;</code> aligns dates with CMC; see
+<code>vignette(&quot;cg-vs-cmc&quot;)</code>.</li>
+<li><code>options(crypto2.cg_api_fallback = TRUE)</code> – if the
+CoinGecko website cannot serve a coin, fetch it from the public API
+instead (no key, but only the last 365 days). Off by default; a fallback
+warns and lists the affected coins in
+<code>attr(result, &quot;cg_api_fallback&quot;)</code>.</li>
+</ul>
+</div>
+<div id="cg_info-per-coin-metadata" class="section level2">
+<h2><code>cg_info()</code> – per-coin metadata</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>info <span class="ot">&lt;-</span> <span class="fu">cg_info</span>(<span class="fu">cg_list</span>()[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>, ])</span></code></pre></div>
+<p>Description, categories, contract addresses across chains, and
+various link fields. Same column conventions as
+<code>crypto_info()</code>.</p>
+</div>
+</div>
+<div id="what-is-not-in-the-free-tier" class="section level1">
+<h1>What is NOT in the free tier</h1>
+<p>The free tier covers every cell needed for daily asset-pricing work
+in USD <em>except</em> the older end of the OHLC quartet:</p>
+<ul>
+<li><strong>OHLC (open / high / low) older than 30 days.</strong> Close
+is fine (returned from the price stream), volume and market cap are
+fine, but the three intra-day extreme columns come back <code>NA</code>
+for any date more than a month old; CoinGecko offers longer windows only
+as 4-day candles. For a complete backfill, run the Pro recipes in
+<code>vignette(&quot;coingecko-pro-backfill&quot;)</code> once – the recipes are
+kept inline in that vignette rather than exported from the package, so
+the package itself stays key-less.</li>
+</ul>
+</div>
+<div id="cross-checking-against-cmc" class="section level1">
+<h1>Cross-checking against CMC</h1>
+<p>Triangulation is one click away once you have the parquet from the
+recipe above. The dedicated vignette <code>cg-vs-cmc</code> walks
+through:</p>
+<ul>
+<li>the date-convention difference between CMC and CG and how
+<code>crypto2</code> harmonizes it;</li>
+<li>a worked BTC reconciliation showing typical agreement &lt; 0.05% per
+day;</li>
+<li>which fields are expected to agree exactly vs. which ones genuinely
+differ between providers (volume disagrees more than price – they
+aggregate over different exchange sets).</li>
+</ul>
+<p>A live cross-source test
+(<code>tests/testthat/test-cg-vs-cmc.R</code>) runs in CI and will fail
+loudly if either provider drifts.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

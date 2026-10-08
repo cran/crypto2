@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>CMC vs CoinGecko: matching and reconciling</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">CMC vs CoinGecko: matching and
+reconciling</h1>
+
+
+
+<div id="why-compare" class="section level1">
+<h1>Why compare?</h1>
+<p>The <code>crypto_*</code> functions (CoinMarketCap) and the
+<code>cg_*</code> functions (CoinGecko) are deliberately interchangeable
+– column names, sort order and types match – so the same downstream code
+consumes either tibble. For empirical work the right thing to do is to
+<strong>always cross-check</strong> a metric across both sources. Doing
+so:</p>
+<ul>
+<li>catches silent schema regressions on either platform;</li>
+<li>catches unit-of-quote bugs (USD vs sats vs cents);</li>
+<li>catches calendar / date-labelling errors;</li>
+<li>and gives factor pipelines a robustness buffer when one provider
+changes its policies.</li>
+</ul>
+<p>Cross-checking needs two things: knowing which CoinGecko coin is
+which CoinMarketCap coin, and knowing which dates line up. This vignette
+covers both, after a short comparison of what each source delivers.</p>
+</div>
+<div id="which-source-for-what" class="section level1">
+<h1>Which source for what</h1>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>CoinMarketCap (<code>crypto_*</code>)</th>
+<th>CoinGecko (<code>cg_*</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Coin universe incl. dead coins</td>
+<td><code>crypto_list(only_active = FALSE)</code></td>
+<td><code>cg_list(only_active = FALSE)</code> (via
+<code>cg_id_mapping()</code>)</td>
+</tr>
+<tr class="even">
+<td>Historical cross-section</td>
+<td><code>crypto_listings(which = &quot;historical&quot;)</code>, daily since
+2013-04-28</td>
+<td>not on the free tier; snapshot <code>cg_listings()</code>
+yourself</td>
+</tr>
+<tr class="odd">
+<td>Daily close, volume, market cap</td>
+<td>full history</td>
+<td>full history</td>
+</tr>
+<tr class="even">
+<td>Daily open / high / low</td>
+<td>full history</td>
+<td>last 30 days</td>
+</tr>
+<tr class="odd">
+<td>Wrapped, staked, bridged tokens</td>
+<td>in the listings, ranked at the bottom</td>
+<td>missing from <code>cg_listings()</code>; history via
+<code>cg_history()</code></td>
+</tr>
+<tr class="even">
+<td>API key</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>Coin identifier</td>
+<td>numeric <code>id</code></td>
+<td><code>slug</code> (e.g. <code>&quot;bitcoin&quot;</code>) and numeric
+<code>id</code></td>
+</tr>
+</tbody>
+</table>
+<p>In short: CoinMarketCap is the stronger source for historical
+cross-sections and full OHLC; CoinGecko is an independent second source
+for prices, volume and market cap. The two id systems are unrelated,
+which is what the crosswalk below solves.</p>
+</div>
+<div id="matching-coins-across-sources-crypto_crosswalk" class="section level1">
+<h1>Matching coins across sources: <code>crypto_crosswalk()</code></h1>
+<p>CoinMarketCap and CoinGecko number their coins independently. Bitcoin
+happens to be id 1 on both, but that is a coincidence: Ethereum is 1027
+on CoinMarketCap and 279 on CoinGecko, and symbols are not unique on
+either platform. Joining the two sources on <code>symbol</code> or
+<code>name</code> silently mismatches coins.</p>
+<p><code>crypto_crosswalk()</code> downloads the Open Crypto Pricing
+crosswalk, which links each CoinMarketCap id to its CoinGecko slug and
+numeric id, including dead coins. Each pair is matched on contract
+addresses, project links, name/symbol and slug, cross-checked against
+DefiLlama, and confirmed on the price series of both providers. The file
+is updated weekly and cached per R session.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(crypto2)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>cw <span class="ot">&lt;-</span> <span class="fu">crypto_crosswalk</span>()          <span class="co"># high-confidence pairs only (default)</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>cw <span class="sc">|&gt;</span> <span class="fu">filter</span>(cmc_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">1027</span><span class="dt">L</span>, <span class="dv">52</span><span class="dt">L</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="fu">select</span>(uid, cmc_id, cg_id, cg_numeric_id, symbol, match_confidence)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 x 6</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;   uid       cmc_id cg_id    cg_numeric_id symbol match_confidence</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;      &lt;int&gt; &lt;chr&gt;            &lt;int&gt; &lt;chr&gt;  &lt;chr&gt;</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; 1 OCP004106      1 bitcoin              1 BTC    high</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; 2 OCP004108   1027 ethereum           279 ETH    high</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt; 3 OCP013055     52 ripple              44 XRP    high</span></span></code></pre></div>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Argument / column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>min_confidence = &quot;high&quot;</code></td>
+<td>default; about 20,700 pairs (October 2026)</td>
+</tr>
+<tr class="even">
+<td><code>min_confidence = &quot;medium&quot;</code> / <code>&quot;low&quot;</code></td>
+<td>adds weaker matches (about 3,600 and 2,500 more)</td>
+</tr>
+<tr class="odd">
+<td><code>include_unmatched = TRUE</code></td>
+<td>adds coins listed by one provider only
+(<code>match_confidence</code> <code>&quot;cmc_only&quot;</code> /
+<code>&quot;cg_only&quot;</code>, other ids <code>NA</code>)</td>
+</tr>
+<tr class="even">
+<td><code>uid</code></td>
+<td>stable Open Crypto Pricing id, never reused</td>
+</tr>
+<tr class="odd">
+<td><code>match_basis</code></td>
+<td>the evidence behind a pair,
+e.g. <code>&quot;contract+name_sym+slug+price&quot;</code></td>
+</tr>
+<tr class="even">
+<td><code>defillama_check</code></td>
+<td><code>&quot;agrees&quot;</code>, <code>&quot;disagrees&quot;</code>,
+<code>&quot;suggests_pair_we_lack&quot;</code>, or <code>NA</code></td>
+</tr>
+<tr class="odd">
+<td><code>is_stablecoin</code>, <code>is_derived_token</code>,
+<code>is_tokenized_tradfi</code></td>
+<td>flags to exclude coins from a factor universe</td>
+</tr>
+</tbody>
+</table>
+<p>The crosswalk is published under CC BY 4.0. When you use or
+redistribute it, cite: Stoeckl &amp; Pukrop (2026), Open Crypto Pricing,
+<a href="https://opencryptopricing.com" class="uri">https://opencryptopricing.com</a>.</p>
+</div>
+<div id="the-date-convention-pitfall" class="section level1">
+<h1>The date-convention pitfall</h1>
+<p>A subtle but important detail: the two providers label the
+<strong>same physical instant</strong> with different dates.</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Provider</th>
+<th>Daily price labelled date X means</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CoinMarketCap (post-2018)</td>
+<td>the close <em>at the end of</em> UTC day X (~23:59:59 UTC of date
+X)</td>
+</tr>
+<tr class="even">
+<td>CoinGecko (native)</td>
+<td>the snapshot <em>at the start of</em> UTC day X (00:00:00 UTC of
+date X)</td>
+</tr>
+</tbody>
+</table>
+<p>These two instants are essentially the same moment in time (they
+differ by 1 second), but the date labels disagree by one day. The first
+convention is the <strong>standard asset-pricing convention</strong>
+(CRSP, Compustat, Liu/Tsyvinski/Wu 2022 and most academic work): under
+it, <code>close[X] / close[X-1] - 1</code> is the return earned during
+date X.</p>
+<p><code>cg_history()</code> and <code>cg_history_by_id()</code> ship
+with <code>date_convention = &quot;end_of_day&quot;</code> as the default, which
+shifts CG’s midnight-UTC ticks by -1 day so the output lines up with
+CMC’s labels. Pass <code>date_convention = &quot;raw&quot;</code> to keep CG’s
+native start-of-day labels (useful when you are doing diagnostic work
+directly against the CoinGecko UI or its public API).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># default: CMC / CRSP / Compustat convention</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>btc_cg <span class="ot">&lt;-</span> <span class="fu">cg_history</span>(<span class="at">coin_list =</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">slug =</span> <span class="st">&quot;bitcoin&quot;</span>, <span class="at">id =</span> <span class="dv">1</span><span class="dt">L</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                     <span class="at">start_date =</span> <span class="st">&quot;2026-05-01&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># raw: CG&#39;s start-of-day labels</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>btc_cg_raw <span class="ot">&lt;-</span> <span class="fu">cg_history</span>(<span class="at">coin_list =</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">slug =</span> <span class="st">&quot;bitcoin&quot;</span>, <span class="at">id =</span> <span class="dv">1</span><span class="dt">L</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                         <span class="at">start_date  =</span> <span class="st">&quot;2026-05-01&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                         <span class="at">date_convention =</span> <span class="st">&quot;raw&quot;</span>)</span></code></pre></div>
+</div>
+<div id="a-worked-example-bitcoin-reconciliation" class="section level1">
+<h1>A worked example: Bitcoin reconciliation</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(crypto2)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>start_date <span class="ot">&lt;-</span> <span class="fu">Sys.Date</span>() <span class="sc">-</span> <span class="dv">10</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>end_date   <span class="ot">&lt;-</span> <span class="fu">Sys.Date</span>()</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>btc_anchor <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">id =</span> <span class="dv">1</span><span class="dt">L</span>, <span class="at">slug =</span> <span class="st">&quot;bitcoin&quot;</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>                             <span class="at">name =</span> <span class="st">&quot;Bitcoin&quot;</span>, <span class="at">symbol =</span> <span class="st">&quot;BTC&quot;</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>cmc <span class="ot">&lt;-</span> <span class="fu">crypto_history</span>(<span class="at">coin_list =</span> btc_anchor, <span class="at">convert =</span> <span class="st">&quot;USD&quot;</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>                      <span class="at">start_date =</span> start_date, <span class="at">end_date =</span> end_date) <span class="sc">|&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">date =</span> <span class="fu">as.Date</span>(timestamp), <span class="at">close_cmc =</span> close)</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>cg <span class="ot">&lt;-</span> <span class="fu">cg_history</span>(<span class="at">coin_list =</span> btc_anchor, <span class="at">convert =</span> <span class="st">&quot;USD&quot;</span>,</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>                 <span class="at">start_date =</span> start_date, <span class="at">end_date =</span> end_date) <span class="sc">|&gt;</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">date =</span> <span class="fu">as.Date</span>(timestamp), <span class="at">close_cg =</span> close)</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>joined <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(cmc, cg, <span class="at">by =</span> <span class="st">&quot;date&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct_diff =</span> (close_cg <span class="sc">-</span> close_cmc) <span class="sc">/</span> close_cmc <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>  <span class="fu">arrange</span>(date)</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>joined</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; # A tibble: 10 x 4</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt;    date       close_cmc close_cg  pct_diff</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt;    &lt;date&gt;         &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt;  1 2026-05-08    80187.   80189.  0.003</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt;  2 2026-05-09    80664.   80678.  0.017</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="co">#&gt;  3 2026-05-10    82139.   82146.  0.008</span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co">#&gt;  ...</span></span></code></pre></div>
+<p>This example only works without a crosswalk because Bitcoin is id 1
+on both platforms. For any other coin, take the ids from
+<code>crypto_crosswalk()</code>, as in the next example.</p>
+<p>Typical agreement on BTC is well under <strong>0.05%</strong> per
+day, with occasional spikes up to ~0.5% in periods of high intra-day
+volatility (the two providers compute their daily close from slightly
+different exchange-weighting baskets). If you ever see &gt;1% on BTC,
+something is wrong – start by double-checking your
+<code>date_convention</code> argument.</p>
+</div>
+<div id="a-worked-example-at-scale-the-cmc-top-20" class="section level1">
+<h1>A worked example at scale: the CMC top 20</h1>
+<p>The same reconciliation for many coins: take the current CMC top 20,
+map them to CoinGecko through the crosswalk, download both histories and
+compare the daily closes.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">library</span>(crypto2)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>cw <span class="ot">&lt;-</span> <span class="fu">crypto_crosswalk</span>()</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>top <span class="ot">&lt;-</span> <span class="fu">crypto_listings</span>(<span class="at">which =</span> <span class="st">&quot;latest&quot;</span>, <span class="at">limit =</span> <span class="dv">20</span>, <span class="at">quote =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(cmc_rank)) <span class="sc">|&gt;</span>            <span class="co"># drop index products without a rank</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="fu">select</span>(id, name, symbol, slug)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>pairs <span class="ot">&lt;-</span> top <span class="sc">|&gt;</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="fu">inner_join</span>(cw <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>is_stablecoin) <span class="sc">|&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>               <span class="fu">select</span>(cmc_id, cg_id, cg_numeric_id),</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>             <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span> <span class="ot">=</span> <span class="st">&quot;cmc_id&quot;</span>))</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>start_date <span class="ot">&lt;-</span> <span class="fu">Sys.Date</span>() <span class="sc">-</span> <span class="dv">10</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>cmc <span class="ot">&lt;-</span> <span class="fu">crypto_history</span>(<span class="at">coin_list =</span> pairs,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>                      <span class="at">start_date =</span> <span class="fu">format</span>(start_date, <span class="st">&quot;%Y%m%d&quot;</span>),</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>                      <span class="at">end_date   =</span> <span class="fu">format</span>(<span class="fu">Sys.Date</span>() <span class="sc">-</span> <span class="dv">1</span>, <span class="st">&quot;%Y%m%d&quot;</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">cmc_id =</span> id, <span class="at">date =</span> <span class="fu">as.Date</span>(timestamp), <span class="at">close_cmc =</span> close)</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="fu">options</span>(<span class="at">crypto2.cg_what =</span> <span class="fu">c</span>(<span class="st">&quot;price&quot;</span>, <span class="st">&quot;market_cap&quot;</span>))   <span class="co"># skip OHLC</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>cg <span class="ot">&lt;-</span> <span class="fu">cg_history</span>(pairs <span class="sc">|&gt;</span> <span class="fu">transmute</span>(<span class="at">slug =</span> cg_id, <span class="at">id =</span> cg_numeric_id),</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>                 <span class="at">start_date =</span> start_date) <span class="sc">|&gt;</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">cg_id =</span> slug, <span class="at">date =</span> <span class="fu">as.Date</span>(timestamp), <span class="at">close_cg =</span> close)</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>pairs <span class="sc">|&gt;</span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">cmc_id =</span> id, cg_id, symbol) <span class="sc">|&gt;</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>  <span class="fu">inner_join</span>(cmc, <span class="at">by =</span> <span class="st">&quot;cmc_id&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>  <span class="fu">inner_join</span>(cg, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;cg_id&quot;</span>, <span class="st">&quot;date&quot;</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct_diff =</span> <span class="dv">100</span> <span class="sc">*</span> (close_cg <span class="sc">/</span> close_cmc <span class="sc">-</span> <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>  <span class="fu">group_by</span>(symbol) <span class="sc">|&gt;</span></span>
+<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">days           =</span> <span class="fu">n</span>(),</span>
+<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>            <span class="at">median_abs_pct =</span> <span class="fu">median</span>(<span class="fu">abs</span>(pct_diff)),</span>
+<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>            <span class="at">max_abs_pct    =</span> <span class="fu">max</span>(<span class="fu">abs</span>(pct_diff))) <span class="sc">|&gt;</span></span>
+<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(max_abs_pct))</span>
+<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a><span class="co">#&gt; # A tibble: 17 x 4</span></span>
+<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a><span class="co">#&gt;    symbol  days median_abs_pct max_abs_pct</span></span>
+<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;  &lt;int&gt;          &lt;dbl&gt;       &lt;dbl&gt;</span></span>
+<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a><span class="co">#&gt;  1 NEAR      10         0.0363      0.764</span></span>
+<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a><span class="co">#&gt;  2 ZEC       10         0.0939      0.195</span></span>
+<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a><span class="co">#&gt;  3 ADA       10         0.0411      0.192</span></span>
+<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a><span class="co">#&gt;  ...</span></span>
+<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a><span class="co">#&gt; 15 ETH       10         0.0223      0.0384</span></span>
+<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a><span class="co">#&gt; 16 BTC       10         0.0194      0.0280</span></span>
+<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a><span class="co">#&gt; 17 TRX       10         0.0127      0.0246</span></span></code></pre></div>
+<p>The output above is from early October 2026: all 17 coins agree to
+within 0.1% on the median day; the largest single-day gap was 0.76%
+(NEAR). A coin whose median gap is several percent is almost always a
+mismatched pair or a wrong <code>date_convention</code>, not a pricing
+difference.</p>
+</div>
+<div id="whats-expected-to-differ-and-what-isnt" class="section level1">
+<h1>What’s expected to differ – and what isn’t</h1>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Typical agreement</th>
+<th>Caveats</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>close</code> (BTC, ETH)</td>
+<td>&lt; 0.05% per day</td>
+<td>Different exchange weightings; spikes during volatility</td>
+</tr>
+<tr class="even">
+<td><code>close</code> (small caps)</td>
+<td>&lt; 1% per day</td>
+<td>Larger spreads, more reliance on a single venue</td>
+</tr>
+<tr class="odd">
+<td><code>volume</code></td>
+<td>poor (often &gt;20%)</td>
+<td>The two providers aggregate over different exchange sets</td>
+</tr>
+<tr class="even">
+<td><code>market_cap</code></td>
+<td>&lt; 1% if supply agrees</td>
+<td>Discrepancies usually indicate disagreement on circulating supply,
+not price</td>
+</tr>
+<tr class="odd">
+<td><code>circulating_supply</code></td>
+<td>exact (large caps)</td>
+<td>Self-reported supplies on small caps can diverge</td>
+</tr>
+</tbody>
+</table>
+<p>Use price for cross-validation; treat volume and
+market-cap-via-supply disagreements as informative on their own.</p>
+</div>
+<div id="the-built-in-test" class="section level1">
+<h1>The built-in test</h1>
+<p><code>tests/testthat/test-cg-vs-cmc.R</code> runs a tight
+reconciliation on BTC (7-day window, tolerance 1%) on every CI run that
+has network access. It will fail loudly if the date conventions ever
+drift out of alignment again, or if either provider switches its
+underlying basket significantly enough to break the tolerance.</p>
+</div>
+<div id="when-to-override-the-default" class="section level1">
+<h1>When to override the default</h1>
+<p>The <code>&quot;end_of_day&quot;</code> default is what you almost always want.
+Switch to <code>&quot;raw&quot;</code> when:</p>
+<ul>
+<li>you are reproducing a CoinGecko chart published with start-of-day
+labels;</li>
+<li>you are debugging the raw data parsing inside
+<code>cg_history()</code>;</li>
+<li>you are comparing daily CG output side-by-side with a Demo
+<code>/coins/{id}/market_chart</code> call (which also returns
+start-of-day timestamps).</li>
+</ul>
+<p>Otherwise, leave it alone and join cleanly with
+<code>crypto_history()</code> output on
+<code>as.Date(timestamp)</code>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

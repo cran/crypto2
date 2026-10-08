@@ -7,11 +7,11 @@
 crypto_listings(
   which = "latest",
   convert = "USD",
-  limit = 5000,
+  limit = NULL,
   start_date = NULL,
   end_date = NULL,
   interval = "day",
-  quote = FALSE,
+  quote = TRUE,
   sort = "cmc_rank",
   sort_dir = "asc",
   sleep = 0,
@@ -25,7 +25,10 @@ crypto_listings(
 \item{convert}{string (default: USD) to one of available fiat prices (\code{fiat_list()}). If more
 than one are selected please separate by comma (e.g. "USD,BTC"), only necessary if 'quote=TRUE'}
 
-\item{limit}{integer Return the top n records}
+\item{limit}{integer Return the top n records per listing (per day for
+\code{which = "historical"}). \code{NULL} (default) returns all coins. For
+\code{which = "historical"}, a day that reaches \code{limit} exactly is flagged as
+possibly truncated in a warning.}
 
 \item{start_date}{string Start date to retrieve data from, format 'yyyymmdd'}
 
@@ -33,7 +36,10 @@ than one are selected please separate by comma (e.g. "USD,BTC"), only necessary 
 
 \item{interval}{string Interval with which to sample data according to what \code{seq()} needs}
 
-\item{quote}{logical set to TRUE if you want to include price data (FALSE=default)}
+\item{quote}{logical (default \code{TRUE}): include price, volume, market-cap and
+percent-change columns. They come with the same API response at no extra
+cost. With \code{FALSE} only identifiers, ranks, dates and supply are returned, and
+there is no \code{price} column.}
 
 \item{sort}{(May 2024: currently not available) string use to sort results, possible values: "name", "symbol", "market_cap", "price",
 "circulating_supply", "total_supply", "max_supply", "num_market_pairs", "volume_24h",
@@ -82,6 +88,18 @@ whether "quote" is requested, the result may only contain some of the following 
 }
 \description{
 This code retrieves listing data (latest/new/historic).
+}
+\details{
+For \code{which = "historical"} each day is fetched in pages of 5,000 coins
+and retried as a whole if a page fails. A day is returned complete or not
+at all: a day that still fails after the retries is dropped and named in
+a warning, never returned truncated.
+
+CMC itself has been observed to return an incomplete day without any
+error: for 2024-01-07, requests from GitHub Actions runners received 2,552
+coins while the same request from a desktop received all 9,002. When you
+run large downloads from a server, compare daily row counts with a run
+from another machine.
 }
 \examples{
 \dontrun{

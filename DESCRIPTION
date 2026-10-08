@@ -1,27 +1,30 @@
 Package: crypto2
-Title: Download Crypto Currency Data from 'CoinMarketCap' without 'API'
-Version: 2.0.5
-Date: 2025-08-31
+Title: Download Crypto Currency Data from 'CoinMarketCap' and
+        'CoinGecko'
+Version: 3.0.0
+Date: 2026-10-07
 Authors@R: c(person("Sebastian", "Stoeckl", email = "sebastian.stoeckl@uni.li", role = c("aut","cre"), comment = c(ORCID = "0000-0002-4196-6093", "Package commissioner and maintainer.")),person("Jesse", "Vent", email = "cryptopackage@icloud.com", role = c("ctb"), comment = c("Creator of the crypto package that provided the idea and basis for this package.")))
 Maintainer: Sebastian Stoeckl <sebastian.stoeckl@uni.li>
 URL: https://github.com/sstoeckl/crypto2,
         https://www.sebastianstoeckl.com/crypto2/
-Description: Retrieves crypto currency information and historical prices as well as information on the exchanges they are listed on. Historical data contains daily open, high, low and close values for all crypto currencies. All data is scraped from <https://coinmarketcap.com> via their 'web-api'.
+Description: Retrieves crypto currency information and historical prices as well as information on the exchanges they are listed on. Historical data contains daily open, high, low and close values for all crypto currencies. The package draws on two complementary sources: 'CoinMarketCap' <https://coinmarketcap.com> (primary, via the 'crypto_*' functions) and 'CoinGecko' <https://www.coingecko.com> (secondary, via the 'cg_*' functions). Both sources are queried without an 'API' key; the two function families return tibbles with identical column conventions so downstream pipelines work on either source.
 License: MIT + file LICENSE
 Depends: R (>= 4.1.0)
 Imports: dplyr, tibble, tidyr, purrr, progress, stats, lubridate,
-        jsonlite, cli, plyr, base64enc, janitor
+        jsonlite, cli, plyr, base64enc, janitor, httr
 Encoding: UTF-8
-RoxygenNote: 7.3.2
-Suggests: spelling, testthat (>= 3.0.0), digest
+RoxygenNote: 7.3.3
+Suggests: spelling, testthat (>= 3.0.0), digest, knitr, rmarkdown,
+        arrow, withr
+VignetteBuilder: knitr
 Language: en-US
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2025-09-10 20:08:43 UTC; sebastian.stoeckl
+Packaged: 2026-10-08 16:21:58 UTC; sebastian.stoeckl
 Author: Sebastian Stoeckl [aut, cre] (ORCID:
     <https://orcid.org/0000-0002-4196-6093>, Package commissioner and
     maintainer.),
   Jesse Vent [ctb] (Creator of the crypto package that provided the idea
     and basis for this package.)
 Repository: CRAN
-Date/Publication: 2025-09-11 05:10:19 UTC
+Date/Publication: 2026-10-08 17:20:02 UTC

@@ -1,26 +1,141 @@
-# crypto2 (development version)
+# crypto2 3.0.0
 
-# crypto 2.0.5
+A major release. crypto2 now draws on two sources: CoinMarketCap (the
+`crypto_*` functions, as before) and CoinGecko (the new `cg_*` functions),
+with a crosswalk that links the two id systems. Several defaults of
+`crypto_listings()` change, so code that relied on them returns different
+(complete) data; see "Breaking changes".
+
+## Breaking changes
+
+* `crypto_listings()` defaults to `limit = NULL` (all coins) instead of
+  `limit = 5000`. Since 2021-05-07 CoinMarketCap lists more than 5,000
+  coins per day (9,002 on 2024-01-07), and the old default cut every
+  historical day at rank 5,000 without a warning.
+* `crypto_listings()` defaults to `quote = TRUE`: price, volume, market-cap
+  and percent-change columns are returned unless `quote = FALSE`. They come
+  with the same API response, so the default costs no extra requests.
+* `crypto_history()` without `coin_list` selects from the full latest
+  listing rather than its top 5,000.
+
+## CoinGecko as a second source
+
+New functions with the same column conventions as their `crypto_*`
+counterparts, so downstream code consumes either tibble. No API key is
+needed.
+
+* `cg_list()` -- coin universe; with `only_active = FALSE` it adds dead
+  coins from `cg_id_mapping()`.
+* `cg_listings()` -- current snapshot with every `/coins/markets` field
+  (price, volume, 24h range, price and market-cap changes, all-time
+  high/low, ROI). CoinGecko's free tier has no historical cross-section;
+  snapshot this function periodically to build one. Wrapped, staked and
+  bridged tokens are not listed by `/coins/markets`.
+* `cg_history()` and `cg_history_by_id()` -- daily close, volume and market
+  cap for the full lifetime of each coin in any quote currency, from
+  CoinGecko's website chart data (in USD from its daily CSV export, one
+  request per coin). Daily open/high/low are built from 4-hour candles and
+  cover the last 30 days; CoinGecko offers longer windows only as 4-day
+  candles.
+* `cg_info()` -- coin metadata.
+* `cg_id_mapping()` -- archive of CoinGecko ids including dead coins,
+  cached per session with a small bundled fallback.
+* Dates follow the CMC / CRSP convention by default
+  (`date_convention = "end_of_day"`): CoinGecko's midnight-UTC ticks are
+  labelled with the day that just ended, so `close[X] / close[X-1] - 1` is
+  the return earned on date X. `date_convention = "raw"` keeps CoinGecko's
+  labels.
+* The package never requires or sends an API key. HTTP 429 and transient
+  408/502/503/504 responses are retried with backoff. Package options
+  `crypto2.cg_sleep`, `crypto2.cg_wait`,
+  `crypto2.cg_max_retries`, `crypto2.cg_top_n`, `crypto2.cg_what` and
+  `crypto2.cg_vs_currency` tune rate limits, retries and streams.
+* Opt-in fallback: with `options(crypto2.cg_api_fallback = TRUE)`,
+  `cg_history()` and `cg_history_by_id()` fetch coins the website cannot
+  serve from CoinGecko's public API (no key), which covers only the last
+  365 days. Off by default; a call that falls back warns and records the
+  coins in `attr(result, "cg_api_fallback")`. `cg_list()`, `cg_listings()`
+  and `cg_info()` use the public API (no key) directly.
+
+## CMC-CoinGecko crosswalk
+
+* New `crypto_crosswalk()` links CoinMarketCap ids to CoinGecko slugs and
+  numeric ids, including dead coins, from the weekly Open Crypto Pricing
+  crosswalk (Stoeckl & Pukrop 2026, <https://opencryptopricing.com>,
+  CC BY 4.0). Pairs are matched on contracts, project links, name/symbol
+  and slug and confirmed on both providers' prices; `min_confidence`
+  (high / medium / low) filters by match quality and
+  `include_unmatched = TRUE` adds coins listed by one provider only. The
+  file is cached per session; Parquet is used when `arrow` is installed,
+  CSV otherwise.
+
+## No silent data loss
+
+* `crypto_listings(which = "historical")` pages in blocks of 5,000 and no
+  longer loses a whole day when CoinMarketCap lists an exact multiple of
+  5,000 coins (e.g. 10,000 on 2024-07-10); for `"latest"` / `"new"` that
+  case used to error. A day that still fails after the retries is left
+  out and named in a warning, never returned truncated, and a day that
+  reaches an explicit `limit` is flagged as possibly truncated.
+* `crypto_global_quotes()` with the default `which = "latest"` returned
+  `NULL`; it now returns the current global market metrics.
+* `crypto_info()` and `exchange_info()` keep an allowlist of known columns,
+  so new or list-type fields in the CoinMarketCap response no longer break
+  them.
+* The `cg_*` functions warn with the page number when paging stops on a
+  failed page, and `cg_history()` / `cg_history_by_id()` stop with an error
+  when CoinGecko returns no series for any requested coin (the source has
+  most likely changed); partial failures name the affected coins.
+* `?crypto_listings` documents that CoinMarketCap itself has served a
+  historical day incomplete without an error (2,552 instead of 9,002 coins
+  for 2024-01-07 to GitHub Actions runners); compare daily row counts when
+  running large downloads from a server.
+
+## Vignettes
+
+* `vignette("coingecko-integration")` -- walkthrough of the `cg_*`
+  functions and a survivorship-bias-free price history in three lines.
+* `vignette("cg-vs-cmc")` -- what each source delivers, matching coins
+  with `crypto_crosswalk()`, the date conventions, and a reconciliation of
+  the CMC top 20 across both sources.
+* `vignette("coingecko-pro-backfill")` -- optional one-shot recipes for a
+  complete historic universe with a CoinGecko Pro key. The recipes live in
+  the vignette only; the package itself never uses a key.
+
+## Tests
+
+* Offline tests with simulated API responses cover paging, retries,
+  failure warnings, the CSV re-alignment, the API fallback and the
+  crosswalk, and run on CRAN. Live tests (skipped on CRAN) reconcile BTC
+  across both sources and fail when a CoinGecko endpoint is retired rather
+  than skipping.
+* A weekly GitHub Actions workflow (`endpoint-check`) calls every
+  CoinMarketCap function and fetches every CoinGecko and Hugging Face
+  source the package uses, checks the shape of each answer and fails when
+  an endpoint is retired or its format changes. Run it locally with
+  `Rscript .github/scripts/check_endpoints.R`.
+
+# crypto2 2.0.5
 
 Slight change in api call outcome needed another modification in `crypto_info()`.
 
-# crypto 2.0.4
+# crypto2 2.0.4
 
 Slight change in api call outcome needed another modification in `crypto_info()`.
 
-# crypto 2.0.3
+# crypto2 2.0.3
 
 Slight change in api call outcome needed another modification in `crypto_info()`. Also corrected one failing tests to not check time zones.
 
-# crypto 2.0.2
+# crypto2 2.0.2
 
 Slight change in api call outcome needed another modification in `crypto_info()`.
 
-# crypto 2.0.1
+# crypto2 2.0.1
 
 Slight change in api call outcome needed a modification in `crypto_info()`.
 
-# crypto 2.0.0
+# crypto2 2.0.0
 
 After a major change in the api structure of coinmarketcap.com, the package had to be rewritten. As a result, many functions had to be rewritten, because data was not available any more in a similar format or with similar accuracy. Unfortunately, this will potentially break many users implementations. Here is a detailed list of changes:
 
@@ -33,27 +148,27 @@ After a major change in the api structure of coinmarketcap.com, the package had 
 - `crypto_global_quotes()` has been modified. It still produces a clear picture of the global market, but the data structure has somewhat slightly changed.
 
 
-# crypto 1.4.6 
+# crypto2 1.4.6 
 
 Added new options "sort" and "sort_dir" for `crypto_listings()` to allow for the sorting of results, which in combination with "limit" allows, for example, to only download the top 100 CCs according to market capitalization that were listed at a certain date. Correct missing last_historical_data date conversion due to the now missing field.
 
-# crypto 1.4.5 
+# crypto2 1.4.5 
 
 Added a new function `crypto_global_quotes()` which retrieves global aggregate market statistics for CMC. There also were some bugs fixed.
 
-# crypto 1.4.4 
+# crypto2 1.4.4 
 
 A new function `crypto_listings()` is introduced to retrieve new/latest/historical listings and listing information at CMC. The option `finalWait = TRUE` does not seem to be necessary any more, also `sleep` can be set to '0' seconds.
 
-# crypto 1.4.3 
+# crypto2 1.4.3 
 
 change limit==1 bug, add interval parameter (offered by pull-request), also change the amount of id splits to allow for max url length 2000
 
-# crypto 1.4.2
+# crypto2 1.4.2
 
 Repaired the history retrieval due to the fact that one api call can only retrieve 1000 data points. Therefore we have to call more often on the api when retrieving the entire history.
 
-# crypto 1.4.1
+# crypto2 1.4.1
 
 Added and corrected a waiter function to wait an additional 60 seconds after the end of the history command before another command could be executed (to not accidentally retrieve the same outdated data). Fixed the waiter.
 

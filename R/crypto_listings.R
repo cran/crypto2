@@ -2,14 +2,31 @@
 #'
 #' This code retrieves listing data (latest/new/historic).
 #'
+#' For `which = "historical"` each day is fetched in pages of 5,000 coins
+#' and retried as a whole if a page fails. A day is returned complete or not
+#' at all: a day that still fails after the retries is dropped and named in
+#' a warning, never returned truncated.
+#'
+#' CMC itself has been observed to return an incomplete day without any
+#' error: for 2024-01-07, requests from GitHub Actions runners received 2,552
+#' coins while the same request from a desktop received all 9,002. When you
+#' run large downloads from a server, compare daily row counts with a run
+#' from another machine.
+#'
 #' @param which string Shall the code retrieve the latest listing, the new listings or a historic listing?
 #' @param convert string (default: USD) to one of available fiat prices (`fiat_list()`). If more
 #' than one are selected please separate by comma (e.g. "USD,BTC"), only necessary if 'quote=TRUE'
-#' @param limit integer Return the top n records
+#' @param limit integer Return the top n records per listing (per day for
+#' `which = "historical"`). `NULL` (default) returns all coins. For
+#' `which = "historical"`, a day that reaches `limit` exactly is flagged as
+#' possibly truncated in a warning.
 #' @param start_date string Start date to retrieve data from, format 'yyyymmdd'
 #' @param end_date string End date to retrieve data from, format 'yyyymmdd', if not provided, today will be assumed
 #' @param interval string Interval with which to sample data according to what `seq()` needs
-#' @param quote logical set to TRUE if you want to include price data (FALSE=default)
+#' @param quote logical (default `TRUE`): include price, volume, market-cap and
+#' percent-change columns. They come with the same API response at no extra
+#' cost. With `FALSE` only identifiers, ranks, dates and supply are returned, and
+#' there is no `price` column.
 #' @param sort (May 2024: currently not available) string use to sort results, possible values: "name", "symbol", "market_cap", "price",
 #' "circulating_supply", "total_supply", "max_supply", "num_market_pairs", "volume_24h",
 #' "volume_7d", "volume_30d", "percent_change_1h", "percent_change_24h",
@@ -86,26 +103,42 @@
 #'
 #' @export
 #'
-crypto_listings <- function(which="latest", convert="USD", limit = 5000, start_date = NULL, end_date = NULL,
-                            interval = "day", quote=FALSE, sort="cmc_rank", sort_dir="asc", sleep = 0, wait = 60, finalWait = FALSE) {
+crypto_listings <- function(which="latest", convert="USD", limit = NULL, start_date = NULL, end_date = NULL,
+                            interval = "day", quote=TRUE, sort="cmc_rank", sort_dir="asc", sleep = 0, wait = 60, finalWait = FALSE) {
   # now create convertId from convert
   convertId <- ifelse(convert=="USD",2781,1)
+  # NULL limit = everything; the page loops stop at the first short page
+  n_pages <- function(limitdl) if (is.null(limit)) 1000L else as.integer(ceiling(limit / limitdl))
+  trim <- function(x) if (is.null(limit)) x else x[seq_len(min(limit, nrow(x))), ]
+  warn_capped <- function(n, what) {
+    if (!is.null(limit) && any(n >= limit)) {
+      warning(sprintf("crypto_listings(): %s reached limit = %d rows; the result is possibly truncated. Use limit = NULL to retrieve all coins.",
+                      what, as.integer(limit)), call. = FALSE)
+    }
+  }
+  empty_result <- function(what) {
+    warning(sprintf("crypto_listings(): CMC returned no rows for %s.", what), call. = FALSE)
+    tibble::tibble()
+  }
   # get current coins
   if (which=="new"){
     listing_raw <- NULL
     limitdl <- 500
-    limitend <- ifelse(limit%%limitdl==0,limit%/%limitdl,limit%/%limitdl+1)
+    limitend <- n_pages(limitdl)
     for (i in 1:limitend){
       new_url <- paste0("cryptocurrency/spotlight?dataType=8&limit=",limitdl,"&convertId=",convertId,"&sort_dir=",sort_dir,"&start=",(i-1)*limitdl+1)
       new_raw <- safeFromJSON(construct_url(new_url,v=3))
+      n <- NROW(new_raw$data$recentlyAddedList)
+      if (n == 0) break
       listing_raw <- bind_rows(listing_raw,
                                new_raw$data$recentlyAddedList %>% tibble::as_tibble() |> janitor::clean_names() %>%
                                  dplyr::rename(date_added=added_date) |>
                                  dplyr::select(-platforms) |>
-                                 dplyr::mutate(dplyr::across(c(date_added),as.Date)) %>%
-                                 dplyr::arrange(id))
-      if (nrow(new_raw$data$recentlyAddedList)<limitdl) {break}
+                                 dplyr::mutate(dplyr::across(c(date_added),as.Date)))
+      if (n<limitdl) {break}
     }
+    if (is.null(listing_raw)) return(empty_result("the new listing"))
+    listing_raw <- trim(listing_raw)
     listing <- listing_raw %>% dplyr::select(-price_change) %>% unique()
     if (quote){
       lquote <- listing_raw %>% dplyr::select(price_change) %>% tidyr::unnest(price_change) %>% tidyr::unnest(everything(), names_sep="_") |> janitor::clean_names() |>
@@ -115,19 +148,22 @@ crypto_listings <- function(which="latest", convert="USD", limit = 5000, start_d
   } else if (which=="latest"){
     listing_raw <- NULL
     limitdl <- 5000
-    limitend <- ifelse(limit%%limitdl==0,limit%/%limitdl,limit%/%limitdl+1)
+    limitend <- n_pages(limitdl)
     for (i in 1:limitend){
       latest_url <- paste0("cryptocurrency/listing?limit=",limitdl,
                         "&convertId=",
                         convertId,"&sort=",sort,"&sort_dir=",sort_dir,"&start=",(i-1)*limitdl+1)
       latest_raw <- safeFromJSON(construct_url(latest_url,v=3))
+      n <- NROW(latest_raw$data$cryptoCurrencyList)
+      if (n == 0) break
       listing_raw <- bind_rows(listing_raw,
                                latest_raw$data$cryptoCurrencyList %>% tibble::as_tibble() |> janitor::clean_names() %>%
                                  dplyr::mutate(dplyr::across(c(last_updated),as.Date)) %>%
-                                 dplyr::select(-any_of(c("badges","audit_info_list","is_audited","platform"))) |>
-                                 dplyr::arrange(id))
-      if (nrow(latest_raw$data$cryptoCurrencyList)<limitdl) {break}
+                                 dplyr::select(-any_of(c("badges","audit_info_list","is_audited","platform"))))
+      if (n<limitdl) {break}
     }
+    if (is.null(listing_raw)) return(empty_result("the latest listing"))
+    listing_raw <- trim(listing_raw)
     listing <- listing_raw %>% dplyr::select(-quotes,-tags) %>% unique()
     if (quote){
       lquote <- listing_raw %>% dplyr::select(quotes) %>% tidyr::unnest(quotes) %>% tidyr::unnest(everything(), names_sep="_") |> janitor::clean_names() |>
@@ -143,22 +179,26 @@ crypto_listings <- function(which="latest", convert="USD", limit = 5000, start_d
     dates <- seq(sdate, edate, by=interval)
     tbdate <- tibble::enframe(dates[which(dates<Sys.Date())],name=NULL) %>% rename(date=value) %>%
       mutate(historyurl = paste0("cryptocurrency/listings/historical?date=",date,
-                                 "&limit=",limit,"&convertId=",convertId,"&sort=",sort,"&sort_dir=",sort_dir,"&start="))
+                                 "&convertId=",convertId,"&sort=",sort,"&sort_dir=",sort_dir))
     # scraping tools
     scrape_web <- function(historyurl,quote){
       listing_raw <- NULL
       limitdl <- 5000
-      limitend <- ifelse(limit%%limitdl==0,limit%/%limitdl,limit%/%limitdl+1)
+      limitend <- n_pages(limitdl)
       for (i in 1:limitend){
-        history_url <- paste0(historyurl,(i-1)*limitdl+1)
+        page_size <- if (is.null(limit)) limitdl else min(limitdl, limit - (i-1)*limitdl)
+        history_url <- paste0(historyurl,"&limit=",page_size,"&start=",(i-1)*limitdl+1)
         history_raw <- safeFromJSON(construct_url(history_url,v=3))
+        # a day with an exact multiple of 5,000 coins ends on an empty page
+        n <- NROW(history_raw$data)
+        if (n == 0) break
         listing_raw <- bind_rows(listing_raw,
                                  history_raw$data %>% tibble::as_tibble() |> janitor::clean_names() %>%
-                                   dplyr::mutate(dplyr::across(c(date_added,last_updated),as.Date)) %>%
-                                   dplyr::arrange(id))
-        if (nrow(history_raw$data)<limitdl) {break}
+                                   dplyr::mutate(dplyr::across(c(date_added,last_updated),as.Date)))
+        if (n<page_size) {break}
       }
-      listing <- listing_raw %>% dplyr::select(-any_of(c("tags","quotes","platform"))) %>% unique()
+      if (is.null(listing_raw)) stop("no listing returned for ", historyurl, call. = FALSE)
+      listing <-listing_raw %>% dplyr::select(-any_of(c("tags","quotes","platform"))) %>% unique()
       if (quote){
         lquote <- listing_raw %>% dplyr::select(quotes) %>% tidyr::unnest(quotes) %>% tidyr::unnest(everything(), names_sep="_") |> janitor::clean_names()
         listing <- listing_raw %>% dplyr::select(-any_of(c("tags","quotes","platform"))) %>%
@@ -178,8 +218,22 @@ crypto_listings <- function(which="latest", convert="USD", limit = 5000, start_d
                            total = length(dates), clear = TRUE)
     message(cli::cat_bullet("Scraping historical listings", bullet = "pointer",bullet_col = "green"))
     data <- tbdate %>% dplyr::mutate(out = purrr::map(historyurl,.f=~insistent_scrape(.x, quote)))
+    # A day is kept whole or not at all: a day that still fails after the
+    # retries is dropped (never truncated) and named in a warning.
+    failed <- vapply(data$out, is.null, logical(1))
+    if (any(failed)) {
+      warning(sprintf("crypto_listings(): %d of %d day(s) failed after retries and are MISSING from the result: %s",
+                      sum(failed), length(failed),
+                      paste0(paste(utils::head(format(data$date[failed]), 10), collapse = ", "),
+                             if (sum(failed) > 10) ", ..." else "")),
+              call. = FALSE)
+    }
     # Modify massive dataframe
     listing <- data %>% select(-historyurl) %>% tidyr::unnest(out)
+    if (!is.null(limit) && nrow(listing) > 0) {
+      per_day <- table(listing$date)
+      warn_capped(per_day, sprintf("%d of %d day(s)", sum(per_day >= limit), length(per_day)))
+    }
   }
   # wait 60s before finishing (or you might end up with the web-api 60s bug)
   if (finalWait){
